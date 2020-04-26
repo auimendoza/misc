@@ -1,4 +1,5 @@
 from faker import Faker
+from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 import random
@@ -15,7 +16,7 @@ def gendata(n, startid=1):
     companies =  list(map(lambda x: f.company(), ids))
     zipcodes = list(map(lambda x: f.zipcode(), ids))
     birthday =  list(map(lambda x: f.date_of_birth(), ids))
-    created = list(map(lambda x: f.date_time_between(start_date='-5y', end_date='now'), ids))
+    created = list(map(lambda x: f.date_time_between(start_date='-5y', end_date='-1d'), ids))
     updated = created
 
     columns = ["username", "email", "firstname", "lastname", "occupation", "employer", "zipcode", "dob", "created", "updated"]
@@ -44,6 +45,9 @@ def genchange(data, frac, replace):
         cidx = random.choice(range(cn))
         col, func = colfunc[cidx]
         s.loc[i, col] = func()
+        hrago = random.choice(range(24))
+        minago = random.choice(range(60))
+        s.loc[i, "updated"] = datetime.now() - timedelta(hours=hrago, minutes=minago)
     
     return s
 
