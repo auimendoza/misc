@@ -26,8 +26,9 @@ def gendata(n, startid=1):
 
     return data
 
-def genchange(data, frac, replace):
-    s = data.sample(frac=frac, replace=replace)
+def genchange(data, k):
+    sdata = data.copy()
+    sidx = random.sample(list(sdata.index), k)
 
     colfunc = [
         ('email', f.email),
@@ -41,19 +42,41 @@ def genchange(data, frac, replace):
 
     cn = len(colfunc)
 
-    for i in list(s.index):
+    for i in sidx:
         cidx = random.choice(range(cn))
         col, func = colfunc[cidx]
-        s.loc[i, col] = func()
+        sdata.loc[i, col] = func()
         hrago = random.choice(range(24))
         minago = random.choice(range(60))
-        s.loc[i, "updated"] = datetime.now() - timedelta(hours=hrago, minutes=minago)
+        sdata.loc[i, "updated"] = datetime.now() - timedelta(hours=hrago, minutes=minago)
     
-    return s
+    return sdata
 
-d = gendata(1000)
-d.to_csv("users.csv", index_label="id")
-n = gendata(50, 1001)
-s = genchange(d, 0.3, True)
-c = pd.concat([n, s])
-c.to_csv("cusers.csv", index_label="id")
+def convertToDim(data):
+    d = data.copy()
+    d["current"] = 1
+    d["startdate"] = d["updated"]
+    d["enddate"] = list(map(lambda _: datetime(2999, 12, 31), range(d.shape[0])))
+    d["id"] = d.index
+    d = d.drop(["created", "updated"], axis=1)
+
+    return d
+
+if __name__ == "__main__":
+    # generate data
+    d = gendata(1000)
+    d.to_csv("users.csv", index_label="id")
+
+    # convert data to dim
+    dim = convertToDim(d)
+    dim.to_csv("dimusers.csv", index_label="key")
+
+    # generate new inserts
+    n = gendata(50, 1001)
+
+    # generate updates to data
+    s = genchange(d, 300)
+
+    # new data is combination of updates and inserts
+    c = pd.concat([n, s])
+    c.to_csv("stgusers.csv", index_label="id")
